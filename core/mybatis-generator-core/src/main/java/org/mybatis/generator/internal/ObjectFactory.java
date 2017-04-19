@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.mybatis.generator.api.CommentGenerator;
+import org.mybatis.generator.api.ConnectionFactory;
 import org.mybatis.generator.api.FullyQualifiedTable;
 import org.mybatis.generator.api.JavaFormatter;
 import org.mybatis.generator.api.Plugin;
@@ -37,6 +38,7 @@ import org.mybatis.generator.codegen.ibatis2.IntrospectedTableIbatis2Java5Impl;
 import org.mybatis.generator.codegen.mybatis3.IntrospectedTableMyBatis3Impl;
 import org.mybatis.generator.codegen.mybatis3.IntrospectedTableMyBatis3SimpleImpl;
 import org.mybatis.generator.config.CommentGeneratorConfiguration;
+import org.mybatis.generator.config.ConnectionFactoryConfiguration;
 import org.mybatis.generator.config.Context;
 import org.mybatis.generator.config.PluginConfiguration;
 import org.mybatis.generator.config.JavaTypeResolverConfiguration;
@@ -61,12 +63,24 @@ public class ObjectFactory {
     	externalClassLoaders = new ArrayList<ClassLoader>();
         resourceClassLoaders = new ArrayList<ClassLoader>();
     }
-
+    
     /**
      * Utility class. No instances allowed
      */
     private ObjectFactory() {
         super();
+    }
+
+    /**
+     * Clears the class loaders.  This method should be called at the beginning of
+     * a generation run so that and change to the classloading configuration
+     * will be reflected.  For example, if the eclipse launcher changes configuration
+     * it might not be updated if eclipse hasn't been restarted.
+     * 
+     */
+    public static void reset() {
+        externalClassLoaders.clear();
+        resourceClassLoaders.clear();
     }
 
     /**
@@ -295,6 +309,28 @@ public class ObjectFactory {
         }
 
         answer = (CommentGenerator) createInternalObject(type);
+
+        if (config != null) {
+            answer.addConfigurationProperties(config.getProperties());
+        }
+
+        return answer;
+    }
+
+    public static ConnectionFactory createConnectionFactory(Context context) {
+
+        ConnectionFactoryConfiguration config = context
+                .getConnectionFactoryConfiguration();
+        ConnectionFactory answer;
+
+        String type;
+        if (config == null || config.getConfigurationType() == null) {
+            type = JDBCConnectionFactory.class.getName();
+        } else {
+            type = config.getConfigurationType();
+        }
+
+        answer = (ConnectionFactory) createInternalObject(type);
 
         if (config != null) {
             answer.addConfigurationProperties(config.getProperties());

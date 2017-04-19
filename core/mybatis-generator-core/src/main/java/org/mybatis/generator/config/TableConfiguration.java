@@ -109,6 +109,11 @@ public class TableConfiguration extends PropertyHolder {
     
     /** The is all column delimiting enabled. */
     private boolean isAllColumnDelimitingEnabled;
+    
+    private String mapperName;
+    private String sqlProviderName;
+    
+    private List<IgnoredColumnPattern> ignoredColumnPatterns = new ArrayList<IgnoredColumnPattern>();
 
     /**
      * Instantiates a new table configuration.
@@ -223,17 +228,15 @@ public class TableConfiguration extends PropertyHolder {
     public boolean isColumnIgnored(String columnName) {
         for (Map.Entry<IgnoredColumn, Boolean> entry : ignoredColumns
                 .entrySet()) {
-            IgnoredColumn ic = entry.getKey();
-            if (ic.isColumnNameDelimited()) {
-                if (columnName.equals(ic.getColumnName())) {
-                    entry.setValue(Boolean.TRUE);
-                    return true;
-                }
-            } else {
-                if (columnName.equalsIgnoreCase(ic.getColumnName())) {
-                    entry.setValue(Boolean.TRUE);
-                    return true;
-                }
+            if (entry.getKey().matches(columnName)) {
+                entry.setValue(Boolean.TRUE);
+                return true;
+            }
+        }
+        
+        for (IgnoredColumnPattern ignoredColumnPattern : ignoredColumnPatterns) {
+            if (ignoredColumnPattern.matches(columnName)) {
+                return true;
             }
         }
 
@@ -248,6 +251,10 @@ public class TableConfiguration extends PropertyHolder {
      */
     public void addIgnoredColumn(IgnoredColumn ignoredColumn) {
         ignoredColumns.put(ignoredColumn, Boolean.FALSE);
+    }
+
+    public void addIgnoredColumnPattern(IgnoredColumnPattern ignoredColumnPattern) {
+        ignoredColumnPatterns.add(ignoredColumnPattern);
     }
 
     /**
@@ -684,6 +691,16 @@ public class TableConfiguration extends PropertyHolder {
             xmlElement
                     .addAttribute(new Attribute("delimitIdentifiers", "true")); //$NON-NLS-1$ //$NON-NLS-2$
         }
+        
+        if (stringHasValue(mapperName)) {
+            xmlElement.addAttribute(new Attribute(
+                    "mapperName", mapperName)); //$NON-NLS-1$
+        }
+
+        if (stringHasValue(sqlProviderName)) {
+            xmlElement.addAttribute(new Attribute(
+                    "sqlProviderName", sqlProviderName)); //$NON-NLS-1$
+        }
 
         addPropertyXmlElements(xmlElement);
 
@@ -699,6 +716,10 @@ public class TableConfiguration extends PropertyHolder {
             for (IgnoredColumn ignoredColumn : ignoredColumns.keySet()) {
                 xmlElement.addElement(ignoredColumn.toXmlElement());
             }
+        }
+        
+        for (IgnoredColumnPattern ignoredColumnPattern : ignoredColumnPatterns) {
+            xmlElement.addElement(ignoredColumnPattern.toXmlElement());
         }
 
         if (columnOverrides.size() > 0) {
@@ -824,6 +845,10 @@ public class TableConfiguration extends PropertyHolder {
         for (IgnoredColumn ignoredColumn : ignoredColumns.keySet()) {
             ignoredColumn.validate(errors, fqTableName);
         }
+
+        for (IgnoredColumnPattern ignoredColumnPattern : ignoredColumnPatterns) {
+            ignoredColumnPattern.validate(errors, fqTableName);
+        }
     }
 
     /**
@@ -863,5 +888,21 @@ public class TableConfiguration extends PropertyHolder {
     public void setAllColumnDelimitingEnabled(
             boolean isAllColumnDelimitingEnabled) {
         this.isAllColumnDelimitingEnabled = isAllColumnDelimitingEnabled;
+    }
+
+    public String getMapperName() {
+        return mapperName;
+    }
+
+    public void setMapperName(String mapperName) {
+        this.mapperName = mapperName;
+    }
+
+    public String getSqlProviderName() {
+        return sqlProviderName;
+    }
+
+    public void setSqlProviderName(String sqlProviderName) {
+        this.sqlProviderName = sqlProviderName;
     }
 }
